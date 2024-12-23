@@ -1,0 +1,42 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+  execreceiver:
+    queries:
+      - command:  "echo $((RANDOM % 100))"
+        metric:
+          metric_name: echo_ft.prueba
+          static_attributes:
+            region: "es"
+      - command:  "ps -eaf | grep collector | wc -l "
+        metric:
+          metric_name: mon_col.prueba
+          static_attributes:
+            region: "es"
+
+processors:
+  batch:
+
+exporters:
+  # NOTE: Prior to v0.86.0 use `logging` instead of `debug`.
+  debug:
+    verbosity: detailed
+
+  otlphttp/prometheus:
+    endpoint: "http://localhost:9090/api/v1/otlp"
+    tls:
+      insecure: true
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug]
+    metrics:
+      receivers: [execreceiver]
+      exporters: [otlphttp/prometheus]
+  telemetry:
+    logs:
+      level: debug
